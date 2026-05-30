@@ -250,7 +250,18 @@ if uploaded_file is not None:
         with st.spinner("Step 5/5: Building eligibility verification rules..."):
             st.session_state.criteria = extract_tender_criteria(st.session_state.raw_text)
             
-        st.success("Tender compliance model synchronized successfully!")
+        # Show context-aware banner based on whether real tender criteria were found
+        _c = st.session_state.criteria or {}
+        _has_criteria = (
+            _c.get("min_turnover_inr") is not None or
+            _c.get("min_experience_years") is not None or
+            bool(_c.get("required_certifications"))
+        )
+        if _has_criteria:
+            st.success("✅ Tender compliance model synchronized successfully!")
+        else:
+            st.info("📄 Document processed. No tender eligibility criteria were detected — this may be an informational document, not a procurement tender.")
+
 
     # 5. UI Tabs
     tab_summary, tab_eligibility, tab_checklist, tab_chat = st.tabs([
