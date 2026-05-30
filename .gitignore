@@ -1,0 +1,17 @@
+# Environment variables containing private keys
+.env
+
+# Python byte-code and cache
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# Local data and output files
+data/
+outputs/
+*.pdf
+*.docx
+
+# Streamlit configurations
+.streamlit/
