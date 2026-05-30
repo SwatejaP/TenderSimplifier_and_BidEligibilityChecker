@@ -133,24 +133,24 @@ def extract_section_text_by_rules(raw_text: str, section_type: str) -> str:
     for start, end in merged_ranges:
         segments.append("\n".join(lines[start:end]))
         
-    return "\n\n... [Next Matched Heading Section] ...\n\n".join(segments)[:14000]
+    return "\n\n... [Next Matched Heading Section] ...\n\n".join(segments)[:2000]
 
 def get_tender_summary(raw_text: str) -> str:
     """
     Isolates Scope, EMD, Dates, and Documents sections using regex,
     then uses ChatGroq to generate a clean, consolidated executive summary.
     """
-    scope_text = extract_section_text_by_rules(raw_text, "scope")
-    emd_text = extract_section_text_by_rules(raw_text, "emd")
-    dates_text = extract_section_text_by_rules(raw_text, "dates")
-    docs_text = extract_section_text_by_rules(raw_text, "documents")
+    scope_text = extract_section_text_by_rules(raw_text, "scope")[:800]
+    emd_text = extract_section_text_by_rules(raw_text, "emd")[:600]
+    dates_text = extract_section_text_by_rules(raw_text, "dates")[:600]
+    docs_text = extract_section_text_by_rules(raw_text, "documents")[:600]
     
     combined_context = (
-        f"--- SCOPE OF WORK SEGMENTS ---\n{scope_text}\n\n"
-        f"--- EMD / BID SECURITY SEGMENTS ---\n{emd_text}\n\n"
-        f"--- CRITICAL DATE SEGMENTS ---\n{dates_text}\n\n"
-        f"--- DOCUMENT REQUIREMENT SEGMENTS ---\n{docs_text}\n"
-    )
+        f"--- SCOPE OF WORK ---\n{scope_text}\n\n"
+        f"--- EMD / BID SECURITY ---\n{emd_text}\n\n"
+        f"--- CRITICAL DATES ---\n{dates_text}\n\n"
+        f"--- DOCUMENT REQUIREMENTS ---\n{docs_text}\n"
+    )[:3500]  # Hard cap to stay within 6K TPM limit of llama-3.1-8b-instant
     
     llm = get_llm()
     messages = [
@@ -170,7 +170,7 @@ def get_timeline(raw_text: str) -> list:
     Isolates date segments using regex, then uses ChatGroq to extract 
     a structured milestones list JSON.
     """
-    dates_text = extract_section_text_by_rules(raw_text, "dates")
+    dates_text = extract_section_text_by_rules(raw_text, "dates")[:3000]
     
     llm = get_llm()
     messages = [
@@ -191,7 +191,7 @@ def get_document_checklist(raw_text: str) -> list:
     Isolates document checklist segments using regex, then uses ChatGroq
     to extract a structured checklist list JSON.
     """
-    docs_text = extract_section_text_by_rules(raw_text, "documents")
+    docs_text = extract_section_text_by_rules(raw_text, "documents")[:3000]
     
     llm = get_llm()
     messages = [
