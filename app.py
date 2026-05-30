@@ -194,31 +194,38 @@ vendor_profile = {
     "projects": completed_projects_text
 }
 
+# Initialize session state keys safely on first load
+for key in ["current_file_id", "raw_text", "vector_store", "summary",
+            "criteria", "timeline", "checklist", "messages"]:
+    if key not in st.session_state:
+        st.session_state[key] = None if key != "messages" else []
+
 # 4. Main Body - PDF Upload
 st.write("---")
 uploaded_file = st.file_uploader("Upload Tender PDF Document (CPPP / Karnataka e-Procurement)", type=["pdf"])
 
 # Manage session state for uploaded file to avoid recalculating on every run
 if uploaded_file is not None:
-    # Check if we uploaded a new file
-    file_id = f"{uploaded_file.name}_{uploaded_file.size}"
-    if "current_file_id" not in st.session_state or st.session_state.current_file_id != file_id:
+    # Use MD5 hash of file content to detect actual file changes (not just name/size)
+    import hashlib
+    pdf_bytes = uploaded_file.read()
+    file_id = hashlib.md5(pdf_bytes).hexdigest()
+
+    if st.session_state.current_file_id != file_id:
+        # New file detected — wipe all cached state
         st.session_state.current_file_id = file_id
-        # Reset cache
         st.session_state.raw_text = None
         st.session_state.vector_store = None
         st.session_state.summary = None
         st.session_state.criteria = None
         st.session_state.timeline = None
         st.session_state.checklist = None
-        st.session_state.messages = [] # Reset chatbot history
+        st.session_state.messages = []
 
-    # Process PDF if not already done
+    # Process PDF if not already done for this file
     if st.session_state.raw_text is None:
         with st.spinner("Step 1/5: Extracting text layout from PDF (pdfplumber/PyPDF2)..."):
             try:
-                # Read bytes and pass to engine
-                pdf_bytes = uploaded_file.read()
                 raw_text = extract_text_from_pdf(pdf_bytes)
                 st.session_state.raw_text = raw_text
             except Exception as e:
