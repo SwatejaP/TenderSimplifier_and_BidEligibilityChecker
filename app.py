@@ -272,9 +272,31 @@ if uploaded_file is not None:
         
         # Calculate eligibility dynamically based on sidebar profile and extracted criteria
         eligibility_results = evaluate_vendor_eligibility(vendor_profile, st.session_state.criteria)
-        
+
+        # Detect if this PDF has NO tender criteria at all (e.g., it's an informational doc)
+        criteria = st.session_state.criteria or {}
+        no_turnover = criteria.get("min_turnover_inr") is None
+        no_experience = criteria.get("min_experience_years") is None
+        no_certs = not criteria.get("required_certifications")
+        is_non_tender_doc = no_turnover and no_experience and no_certs
+
+        if is_non_tender_doc:
+            st.markdown("""
+            <div style="border-left: 5px solid #3498db; background: linear-gradient(90deg, rgba(52,152,219,0.2) 0%, rgba(52,152,219,0.05) 100%);
+                        padding: 18px 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="color:#3498db; margin:0;">ℹ️ No Eligibility Criteria Detected</h3>
+                <p style="color:#cbd5e0; margin:8px 0 0 0;">
+                    The uploaded document does not appear to be a procurement tender (NIT / RFP / EOI).<br>
+                    <strong>No minimum turnover, experience, or certification requirements were found.</strong><br><br>
+                    👉 Please upload a valid tender PDF such as a <em>Notice Inviting Tender (NIT)</em>, 
+                    <em>Request for Proposal (RFP)</em>, or <em>Expression of Interest (EOI)</em> from 
+                    CPPP, GeM, or Karnataka e-Procurement to evaluate eligibility.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
         # Big overall assessment banner
-        if eligibility_results.get("extraction_error", False):
+        elif eligibility_results.get("extraction_error", False):
             st.markdown(f"""
             <div class="status-banner-ineligible" style="border-left: 5px solid #f39c12; background: linear-gradient(90deg, rgba(243, 156, 18, 0.2) 0%, rgba(243, 156, 18, 0.05) 100%);">
                 <h3 style="color:#f39c12; margin:0;">⚠️ Evaluation Suspended</h3>
@@ -296,69 +318,67 @@ if uploaded_file is not None:
             </div>
             """, unsafe_allow_html=True)
 
-        col_left, col_right = st.columns(2)
-        
-        with col_left:
-            st.markdown("### 📈 Turnover Verification")
-            turnover_res = eligibility_results.get("turnover", {})
-            t_status = turnover_res.get("status", "FAIL")
-            
-            st.write(f"**Required Threshold:** {turnover_res.get('required')}")
-            st.write(f"**Your Turnover:** {turnover_res.get('vendor')}")
-            if t_status == "PASS":
-                st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
-            st.info(f"**Extracted Text Rule:** {turnover_res.get('details')}")
+        if not is_non_tender_doc:
+            col_left, col_right = st.columns(2)
 
-            st.write("---")
-            
-            st.markdown("### 🏆 Certifications Verification")
-            cert_res = eligibility_results.get("certifications", {})
-            c_status = cert_res.get("status", "FAIL")
-            
-            # List each required certification and its status
-            items = cert_res.get("items", [])
-            if items:
-                st.write("**Required Certifications Checklist:**")
-                for item in items:
-                    c_name = item.get("certification")
-                    c_stat = item.get("status")
-                    if c_stat == "PASS":
-                        st.markdown(f"✅ **{c_name}**: Available in profile")
-                    else:
-                        st.markdown(f"❌ **{c_name}**: <span style='color:#e74c3c; font-weight:bold;'>Missing</span>", unsafe_allow_html=True)
-                        st.warning(f"💡 **Action Required**: Add `{c_name}` (or a keyword like `CoA` / `Council of Architecture`) in the **Add Custom Certification** sidebar field to update your eligibility.")
-            else:
-                st.write(f"**Required:** {cert_res.get('required')}")
-                st.write(f"**Provided:** {cert_res.get('vendor')}")
-                if c_status == "PASS":
+            with col_left:
+                st.markdown("### 📈 Turnover Verification")
+                turnover_res = eligibility_results.get("turnover", {})
+                t_status = turnover_res.get("status", "FAIL")
+                st.write(f"**Required Threshold:** {turnover_res.get('required')}")
+                st.write(f"**Your Turnover:** {turnover_res.get('vendor')}")
+                if t_status == "PASS":
                     st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
                 else:
                     st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
-            
-            st.info(f"**Extracted Text Rule:** {cert_res.get('details')}")
+                st.info(f"**Extracted Text Rule:** {turnover_res.get('details')}")
 
-        with col_right:
-            st.markdown("### ⏳ Experience Verification")
-            exp_res = eligibility_results.get("experience", {})
-            e_status = exp_res.get("status", "FAIL")
-            
-            st.write(f"**Required Years:** {exp_res.get('required')}")
-            st.write(f"**Your Experience:** {exp_res.get('vendor')}")
-            if e_status == "PASS":
-                st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
-            st.info(f"**Extracted Text Rule:** {exp_res.get('details')}")
+                st.write("---")
 
-            st.write("---")
+                st.markdown("### 🏆 Certifications Verification")
+                cert_res = eligibility_results.get("certifications", {})
+                c_status = cert_res.get("status", "FAIL")
 
-            st.markdown("### 💡 MSME / NSIC Exemption Analysis")
-            msme_res = eligibility_results.get("emd_exemption", {})
-            st.write(f"**EMD Exemption Mentioned:** {'Yes' if msme_res.get('exempt') else 'No'}")
-            st.markdown(f'<span class="badge-info">MSME EXEMPTION NOTE</span>', unsafe_allow_html=True)
-            st.info(f"**Extracted Text Rule:** {msme_res.get('details')}")
+                items = cert_res.get("items", [])
+                if items:
+                    st.write("**Required Certifications Checklist:**")
+                    for item in items:
+                        c_name = item.get("certification")
+                        c_stat = item.get("status")
+                        if c_stat == "PASS":
+                            st.markdown(f"✅ **{c_name}**: Available in profile")
+                        else:
+                            st.markdown(f"❌ **{c_name}**: <span style='color:#e74c3c; font-weight:bold;'>Missing</span>", unsafe_allow_html=True)
+                            st.warning(f"💡 **Action Required**: Add `{c_name}` (or a keyword like `CoA` / `Council of Architecture`) in the **Add Custom Certification** sidebar field to update your eligibility.")
+                else:
+                    st.write(f"**Required:** {cert_res.get('required')}")
+                    st.write(f"**Provided:** {cert_res.get('vendor')}")
+                    if c_status == "PASS":
+                        st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
+
+                st.info(f"**Extracted Text Rule:** {cert_res.get('details')}")
+
+            with col_right:
+                st.markdown("### ⏳ Experience Verification")
+                exp_res = eligibility_results.get("experience", {})
+                e_status = exp_res.get("status", "FAIL")
+                st.write(f"**Required Years:** {exp_res.get('required')}")
+                st.write(f"**Your Experience:** {exp_res.get('vendor')}")
+                if e_status == "PASS":
+                    st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
+                st.info(f"**Extracted Text Rule:** {exp_res.get('details')}")
+
+                st.write("---")
+
+                st.markdown("### 💡 MSME / NSIC Exemption Analysis")
+                msme_res = eligibility_results.get("emd_exemption", {})
+                st.write(f"**EMD Exemption Mentioned:** {'Yes' if msme_res.get('exempt') else 'No'}")
+                st.markdown(f'<span class="badge-info">MSME EXEMPTION NOTE</span>', unsafe_allow_html=True)
+                st.info(f"**Extracted Text Rule:** {msme_res.get('details')}")
 
     # --- TAB 3: Checklist & Timeline ---
     with tab_checklist:
