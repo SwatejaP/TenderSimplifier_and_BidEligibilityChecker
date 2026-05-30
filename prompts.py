@@ -1,14 +1,19 @@
 # Centralized Prompt Templates for Llama 3 via Groq
 
-SUMMARIZATION_PROMPT = """You are an expert Tender Analyst. Review the provided tender document context and extract a comprehensive summary.
-Your summary must focus on these four key sections:
-1. Scope of Work (What needs to be done, services, or goods to be supplied).
-2. EMD / Bid Security (The amount, mode of payment, and any visible exemption criteria).
-3. Critical Dates (Pre-bid meeting date, bid submission start/end date, opening date).
-4. Required Documents (Checklist of certificates, forms, schedules, and letters).
+SUMMARIZATION_PROMPT = """You are an expert Tender Analyst. Review the provided extracted text from a real government tender document.
+Write a concise executive summary covering ONLY what is explicitly stated in the text below.
 
-Be precise, objective, and extract actual values (such as currency amounts and exact dates) directly from the text.
-Use clear, readable markdown formatting.
+Focus on:
+1. Scope of Work - what needs to be done, services, or goods to be supplied.
+2. EMD / Bid Security - the amount and any exemption criteria explicitly mentioned.
+3. Critical Dates - submission deadline, opening date, pre-bid meeting if mentioned.
+4. Required Documents - only documents explicitly listed in the provided text.
+
+CRITICAL RULES:
+- Do NOT invent or infer any information not present in the provided text.
+- Do NOT add generic documents that are not explicitly listed.
+- If a section is absent from the text, write "Not specified in the provided sections."
+- Be concise, factual, and use clean markdown formatting.
 """
 
 CRITERIA_EXTRACTION_PROMPT = """You are an expert procurement auditor. Your task is to analyze the tender document text and extract the exact vendor qualification and eligibility criteria.
@@ -46,19 +51,23 @@ Example format:
 }
 """
 
-CHECKLIST_PROMPT = """You are a Compliance Officer. Analyze the tender document and extract a list of all physical and digital documents that the bidder must submit.
-Output a raw, valid JSON object containing a single list named "documents". Each item in the list must be a JSON object with:
-1. "document_name": A short descriptive name of the document (e.g., "GST Registration Certificate", "EMD Receipt").
-2. "category": Category of document (e.g. "Technical Bid", "Financial Bid", "Eligibility", "Compliance").
-3. "mandatory": A boolean (true/false) indicating if this document is strictly mandatory.
-4. "description": Context/purpose of the document (e.g. "To verify tax compliance", "To prove experience").
+CHECKLIST_PROMPT = """You are a Compliance Officer. Analyze the provided tender document text and extract ONLY the documents that are EXPLICITLY listed in the text as required for submission.
 
-Do not write any preamble, explanation, or markdown code blocks. Output JSON only.
+Output a raw, valid JSON object containing a single list named "documents". Each item must be a JSON object with:
+1. "document_name": The exact name of the document as mentioned in the tender text.
+2. "category": Category ("Technical Bid", "Financial Bid", "Eligibility", or "Compliance").
+3. "mandatory": true if explicitly required, false if optional.
+4. "description": Brief purpose (e.g. "To verify tax compliance").
+
+CRITICAL RULES:
+- Output ONLY documents explicitly named in the provided text. DO NOT invent or add generic documents.
+- Maximum 15 documents. Pick only the most important ones if there are more.
+- Do not write any preamble, explanation, or markdown code blocks. Output JSON only.
 
 Example format:
 {
   "documents": [
-    {"document_name": "ISO 9001 Certificate", "category": "Eligibility", "mandatory": true, "description": "Must be valid as of submission date"}
+    {"document_name": "GST Registration Certificate", "category": "Eligibility", "mandatory": true, "description": "To verify GST compliance"}
   ]
 }
 """
