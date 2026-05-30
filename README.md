@@ -18,37 +18,35 @@ A modular, high-performance Streamlit application designed to simplify dense pub
 
 ## 🏗️ System Architecture
 
-```text
-       ┌────────────────────────┐
-       │   Tender PDF Document  │
-       └───────────┬────────────┘
-                   │
-                   ▼
-       ┌────────────────────────┐
-       │ Layout-Aware Extraction│ (pdfplumber + PyPDF2)
-       └───────────┬────────────┘
-                   │
-                   ▼
-       ┌────────────────────────┐
-       │   Regex Segmentation   │ (Heading splitting & filtering)
-       └─────┬─────────────┬────┘
-             │             │
-             ▼             ▼
-  ┌──────────────────┐  ┌────────────────────────────────────┐
-  │ RAG Vector Index │  │       Groq LLM Parser              │ (Llama 3.3 70B)
-  │ (FAISS & local)  │  │ (Summary, Timeline, Docs, Criteria)│
-  └──────────┬───────┘  └──────────────────┬─────────────────┘
-             │                             │
-             ▼                             ▼
-  ┌──────────────────┐  ┌────────────────────────────────────┐
-  │ Chat Copilot UI  │  │ Deterministic Python Rule Matcher  │ (Check vendor input)
-  └──────────────────┘  └──────────────────┬─────────────────┘
-                                           │
-                                           ▼
-                                ┌─────────────────────┐
-                                │ Streamlit Dashboard │
-                                │   & DOCX Export     │
-                                └─────────────────────┘
+```mermaid
+flowchart TD
+    %% Main Core Pipeline
+    A[Tender PDF] --> B[PDF Extraction]
+    B --> C[Section Extraction]
+    C --> D[Structured Data]
+
+    %% Left Branch (Analysis & Evaluation)
+    D --> E[Tender Summary]
+    D --> F[Eligibility Engine]
+    D --> G[Timeline & Checklist]
+    
+    F <--> H[Vendor Profile]
+    F --> I[Pass/Fail Report]
+    I --> J[DOCX/PDF Report]
+    J --> K[Streamlit UI]
+
+    %% Right Branch (RAG Chatbot)
+    C --> L[Text Chunking]
+    L --> M[HF Embeddings]
+    M --> N[FAISS]
+    N --> O[Groq Llama3]
+    O --> P[Tender Chatbot]
+
+    %% Style definitions to match your clean theme
+    style A fill:#f5f6fa,stroke:#2f3640,stroke-width:2px
+    style K fill:#dff9fb,stroke:#130cb7,stroke-width:2px
+    style P fill:#dff9fb,stroke:#130cb7,stroke-width:2px
+    style F fill:#f5f6fa,stroke:#2f3640,stroke-width:2px
 ```
 
 ---
