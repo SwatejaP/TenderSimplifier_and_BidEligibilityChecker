@@ -294,12 +294,26 @@ if uploaded_file is not None:
             cert_res = eligibility_results.get("certifications", {})
             c_status = cert_res.get("status", "FAIL")
             
-            st.write(f"**Required:** {cert_res.get('required')}")
-            st.write(f"**Provided:** {cert_res.get('vendor')}")
-            if c_status == "PASS":
-                st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
+            # List each required certification and its status
+            items = cert_res.get("items", [])
+            if items:
+                st.write("**Required Certifications Checklist:**")
+                for item in items:
+                    c_name = item.get("certification")
+                    c_stat = item.get("status")
+                    if c_stat == "PASS":
+                        st.markdown(f"✅ **{c_name}**: Available in profile")
+                    else:
+                        st.markdown(f"❌ **{c_name}**: <span style='color:#e74c3c; font-weight:bold;'>Missing</span>", unsafe_allow_html=True)
+                        st.warning(f"💡 **Action Required**: Add `{c_name}` (or a keyword like `CoA` / `Council of Architecture`) in the **Add Custom Certification** sidebar field to update your eligibility.")
             else:
-                st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
+                st.write(f"**Required:** {cert_res.get('required')}")
+                st.write(f"**Provided:** {cert_res.get('vendor')}")
+                if c_status == "PASS":
+                    st.markdown('<span class="badge-pass">PASS</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="badge-fail">FAIL</span>', unsafe_allow_html=True)
+            
             st.info(f"**Extracted Text Rule:** {cert_res.get('details')}")
 
         with col_right:
