@@ -28,11 +28,13 @@ def extract_tender_criteria(raw_text: str) -> dict:
     ]
     
     criteria = {}
+    extraction_error = False
     try:
         response = llm.invoke(messages)
         criteria = clean_json_response(response.content)
     except Exception as e:
         logger.error(f"Error calling Groq for criteria extraction: {e}")
+        extraction_error = True
         
     # Provide robust default keys in case extraction missed them
     default_criteria = {
@@ -52,6 +54,9 @@ def extract_tender_criteria(raw_text: str) -> dict:
         if k not in criteria:
             criteria[k] = v
             
+    if extraction_error:
+        criteria["extraction_error"] = True
+            
     return criteria
 
 def evaluate_vendor_eligibility(vendor_profile: dict, criteria: dict) -> dict:
@@ -70,6 +75,40 @@ def evaluate_vendor_eligibility(vendor_profile: dict, criteria: dict) -> dict:
     """
     results = {}
     is_msme = vendor_profile.get("msme_status", False)
+    
+    # Check if there was an LLM extraction error
+    if criteria.get("extraction_error", False):
+        results["extraction_error"] = True
+        results["turnover"] = {
+            "status": "FAIL",
+            "message": "Error extracting turnover threshold from tender document.",
+            "required": "Error",
+            "vendor": f"INR {vendor_profile.get('turnover', 0.0):,.2f}",
+            "details": "LLM extraction failed. Please reload the document or select a different model in the sidebar settings."
+        }
+        results["experience"] = {
+            "status": "FAIL",
+            "message": "Error extracting experience threshold from tender document.",
+            "required": "Error",
+            "vendor": f"{vendor_profile.get('experience', 0)} years",
+            "details": "LLM extraction failed."
+        }
+        results["certifications"] = {
+            "status": "FAIL",
+            "message": "Error extracting certification requirements from tender document.",
+            "required": "Error",
+            "vendor": ", ".join(vendor_profile.get("certifications", [])),
+            "details": "LLM extraction failed.",
+            "items": []
+        }
+        results["emd_exemption"] = {
+            "status": "INFO",
+            "message": "Error extracting MSME exemptions.",
+            "exempt": False,
+            "details": "LLM extraction failed."
+        }
+        results["eligible"] = False
+        return results
     
     # 1. Turnover Assessment
     req_turnover = criteria.get("min_turnover_inr")

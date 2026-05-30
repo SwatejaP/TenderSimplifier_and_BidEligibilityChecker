@@ -267,7 +267,14 @@ if uploaded_file is not None:
         eligibility_results = evaluate_vendor_eligibility(vendor_profile, st.session_state.criteria)
         
         # Big overall assessment banner
-        if eligibility_results["eligible"]:
+        if eligibility_results.get("extraction_error", False):
+            st.markdown(f"""
+            <div class="status-banner-ineligible" style="border-left: 5px solid #f39c12; background: linear-gradient(90deg, rgba(243, 156, 18, 0.2) 0%, rgba(243, 156, 18, 0.05) 100%);">
+                <h3 style="color:#f39c12; margin:0;">⚠️ Evaluation Suspended</h3>
+                <p style="color:#ffffff; margin:5px 0 0 0;">LLM parameter extraction failed due to a connection/rate-limit error. Please try again or switch to a higher quota model (like Llama 3.1 8B) in the sidebar.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        elif eligibility_results["eligible"]:
             st.markdown(f"""
             <div class="status-banner-eligible">
                 <h3 style="color:#2ecc71; margin:0;">✅ Eligible to Bid</h3>
