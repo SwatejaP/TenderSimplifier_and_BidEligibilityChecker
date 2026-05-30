@@ -36,8 +36,17 @@ SECTION_KEYWORDS = {
 
 def get_llm():
     """Initializes the ChatGroq model for summarization and JSON extraction."""
+    # Default to llama-3.1-8b-instant for fast, high daily token limit quota
+    model_name = "llama-3.1-8b-instant"
+    try:
+        import streamlit as st
+        if "selected_model" in st.session_state:
+            model_name = st.session_state.selected_model
+    except Exception:
+        pass
+        
     return ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model=model_name,
         temperature=0,
         max_tokens=2048,
         api_key=os.getenv("GROQ_API_KEY")

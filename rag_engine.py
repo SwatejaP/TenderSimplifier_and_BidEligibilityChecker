@@ -13,15 +13,6 @@ class TenderRAGEngine:
         # Runs locally on CPU very efficiently, no API key required for this specific model load
         self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         
-        # Free, ultra-fast inference via Groq using Llama 3 70B
-        # Requires GROQ_API_KEY in environment variables
-        self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            temperature=0,
-            max_tokens=1024,
-            api_key=os.getenv("GROQ_API_KEY")
-        )
-
     def create_vector_store(self, raw_text: str):
         """Chunks text and indexes it into a local FAISS vector store in memory."""
         text_splitter = RecursiveCharacterTextSplitter(
@@ -37,12 +28,28 @@ class TenderRAGEngine:
         """Executes a structured RAG query against the FAISS index."""
         retriever = vector_store.as_retriever(search_kwargs={"k": 5})
         
+        # Determine model name dynamically to avoid rate limits
+        model_name = "llama-3.1-8b-instant"
+        try:
+            import streamlit as st
+            if "selected_model" in st.session_state:
+                model_name = st.session_state.selected_model
+        except Exception:
+            pass
+            
+        llm = ChatGroq(
+            model=model_name,
+            temperature=0,
+            max_tokens=1024,
+            api_key=os.getenv("GROQ_API_KEY")
+        )
+        
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
             ("human", "{input}\n\nContext:\n{context}")
         ])
         
-        question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
+        question_answer_chain = create_stuff_documents_chain(llm, prompt)
         rag_chain = create_retrieval_chain(retriever, question_answer_chain)
         
         response = rag_chain.invoke({"input": user_query})

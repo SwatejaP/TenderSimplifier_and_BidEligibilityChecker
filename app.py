@@ -137,8 +137,17 @@ def load_rag_engine():
 
 rag_engine = load_rag_engine()
 
-# 3. Sidebar - Vendor Profile Configurator
-st.sidebar.markdown("<h2 style='margin-top:0;'>🏢 Vendor Profile</h2>", unsafe_allow_html=True)
+# 3. Sidebar - Settings & Vendor Profile Configurator
+st.sidebar.markdown("<h2 style='margin-top:0;'>⚙️ System Settings</h2>", unsafe_allow_html=True)
+selected_model = st.sidebar.selectbox(
+    "LLM Model",
+    ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
+    index=0,
+    help="Default is Llama 3.1 8B (fast, high API limit). Toggle to Llama 3.3 70B for highly precise criteria extraction."
+)
+st.session_state.selected_model = selected_model
+
+st.sidebar.markdown("<h2 style='margin-top:15px;'>🏢 Vendor Profile</h2>", unsafe_allow_html=True)
 st.sidebar.write("Configure your profile parameters to test eligibility against the uploaded tender.")
 
 vendor_name = st.sidebar.text_input("Company Name", value="Horizon Technologies Pvt Ltd")
